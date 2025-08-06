@@ -1,0 +1,71 @@
+version: "3"
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: mqtt-broker
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    restart: unless-stopped
+
+  influxdb:
+    image: influxdb:latest
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    volumes:
+      - ./influxdb/data:/var/lib/influxdb
+      - ./influxdb/config/influxdb.conf:/etc/influxdb/influxdb.conf
+    restart: unless-stopped
+
+  telegraf:
+    image: telegraf:latest
+    container_name: telegraf
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf
+    depends_on:
+      - influxdb
+      - mosquitto
+    restart: unless-stopped
+
+  # webui:
+  #   build: ./webui
+  #   container_name: webui
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - influxdb
+  #     - mosquitto
+  #     - postgres
+  #   restart: unless-stopped
+  #   environment:
+  #     - INFLUX_HOST=influxdb
+  #     - INFLUX_ORG=b79109084e9a3ae8
+  #     - INFLUX_BUCKET=monitors
+  #     - INFLUX_TOKEN=zwyqFlpEPVouf4ko90WZjlmPD5YnwpM6ztHPyd89HGWFzlNhK1L2ivWrt9d32UaH5KYcLkk0cFq1ogLY9E7_WA==
+  #     - MQTT_BROKER_HOST=mosquitto
+  #     - MQTT_BROKER_PORT=1883
+  #     - DATABASE_URL="postgresql://myuser:mypassword@localhost:5432/mydb?schema=public"
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres/data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+      - POSTGRES_DB=mydb
+    restart: unless-stopped
+
+volumes:
+  config:
+  data:
+  log:
